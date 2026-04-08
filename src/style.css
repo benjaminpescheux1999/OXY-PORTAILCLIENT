@@ -86,3 +86,24 @@ pre {
 .hint {
   color: #475569;
 }
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.details-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.details-card h4 {
+  margin: 0 0 8px;
+}
+
+.details-card p {
+  margin: 4px 0;
+}
