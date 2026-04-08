@@ -107,3 +107,54 @@ pre {
 .details-card p {
   margin: 4px 0;
 }
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab {
+  background: #fff;
+  color: #0f172a;
+}
+
+.tab.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.facture-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+}
+
+.facture-list {
+  display: grid;
+  gap: 8px;
+}
+
+.facture-item {
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  background: #fff;
+  color: #0f172a;
+}
+
+.facture-item.active {
+  background: #e2e8f0;
+}
+
+.facture-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.facture-line {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fafc;
+}
