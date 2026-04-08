@@ -54,6 +54,7 @@ type FactureDetail = FactureSummary & {
 };
 
 type ActiveTab = "profile" | "factures";
+type FactureFilter = "F" | "D" | "I";
 
 const API_BASE_URL = (import.meta.env.VITE_OXYREST_API_URL || "").replace(/\/+$/, "");
 const CLIENT_TOKEN = import.meta.env.VITE_CLIENT_TOKEN || "";
@@ -176,6 +177,7 @@ export function App() {
   const [selectedFacture, setSelectedFacture] = useState<FactureDetail | null>(null);
   const [facturesLoading, setFacturesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("profile");
+  const [factureFilter, setFactureFilter] = useState<FactureFilter>("F");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,13 +191,13 @@ export function App() {
     setUser(nextUser);
     const details = await apiFetch(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, token);
     setClientDetails(normalizeClientDetails(details));
-    await loadFactures(token, nextUser.clientCode);
+    await loadFactures(token, nextUser.clientCode, "F");
   }
 
-  async function loadFactures(token: string, clientCode: string) {
+  async function loadFactures(token: string, clientCode: string, type: FactureFilter) {
     setFacturesLoading(true);
     try {
-      const listPayload = await apiFetch(`/client/espace-client/client/${encodeURIComponent(clientCode)}/factures`, { method: "GET" }, token);
+      const listPayload = await apiFetch(`/client/espace-client/client/${encodeURIComponent(clientCode)}/factures?type=${encodeURIComponent(type)}`, { method: "GET" }, token);
       const items = normalizeFactures(listPayload);
       setFactures(items);
       if (items.length > 0) {
@@ -258,7 +260,7 @@ export function App() {
       setUser(nextUser);
       const details = await apiFetch(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, login.accessToken as string);
       setClientDetails(normalizeClientDetails(details));
-      await loadFactures(login.accessToken as string, nextUser.clientCode);
+      await loadFactures(login.accessToken as string, nextUser.clientCode, "F");
     } catch (err) {
       captureMonitoringError(err, "login");
       setError(err instanceof Error ? err.message : "Connexion impossible");
@@ -286,7 +288,13 @@ export function App() {
     setFactures([]);
     setSelectedFacture(null);
     setActiveTab("profile");
+    setFactureFilter("F");
   }
+
+  useEffect(() => {
+    if (activeTab !== "factures" || !user || !accessToken) return;
+    void loadFactures(accessToken, user.clientCode, factureFilter);
+  }, [activeTab, factureFilter, user, accessToken]);
 
   return (
     <div className="app-shell">
@@ -368,6 +376,17 @@ export function App() {
             <div className="facture-layout">
               <div>
                 <h3>Liste des factures</h3>
+                <div className="tabs tabs-small">
+                  <button className={factureFilter === "F" ? "tab active" : "tab"} onClick={() => setFactureFilter("F")}>
+                    Factures
+                  </button>
+                  <button className={factureFilter === "D" ? "tab active" : "tab"} onClick={() => setFactureFilter("D")}>
+                    Devis
+                  </button>
+                  <button className={factureFilter === "I" ? "tab active" : "tab"} onClick={() => setFactureFilter("I")}>
+                    Interventions gratuites
+                  </button>
+                </div>
                 {facturesLoading ? <p>Chargement des factures...</p> : null}
                 {factures.length === 0 && !facturesLoading ? <p>Aucune facture trouvée.</p> : null}
                 <div className="facture-list">

@@ -114,6 +114,10 @@ pre {
   margin-bottom: 12px;
 }
 
+.tabs-small {
+  flex-wrap: wrap;
+}
+
 .tab {
   background: #fff;
   color: #0f172a;
