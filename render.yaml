@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: oxy-espace-client-web
+    env: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_OXYREST_API_URL
+        sync: false
+      - key: VITE_CLIENT_TOKEN
+        sync: false
+      - key: VITE_LOGROCKET_APP_ID
+        sync: false
