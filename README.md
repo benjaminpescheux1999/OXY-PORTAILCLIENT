@@ -14,7 +14,9 @@ npm run dev
 
 - `VITE_OXYREST_API_URL` URL publique de l'API OxyRest
 - `VITE_CLIENT_TOKEN` token client généré par l'utilitaire OXYDRIVER
-- `VITE_LOGROCKET_APP_ID` id LogRocket (optionnel)
+- `VITE_LOGROCKET_APP_ID` id LogRocket (optionnel), ex: `ymygk/portailclient`
+
+Note: LogRocket est activé uniquement en build production (`npm run build`).
 
 ## Build production
 

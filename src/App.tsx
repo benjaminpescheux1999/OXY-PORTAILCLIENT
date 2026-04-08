@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { captureMonitoringError, clearMonitoringUser, identifyMonitoringUser } from "./monitoring";
 
 type User = {
   id: string;
@@ -98,10 +99,19 @@ export function App() {
         setAccessToken(token);
         await loadMe(token);
       } catch (err) {
+        captureMonitoringError(err, "initial_refresh");
         setError(err instanceof Error ? err.message : "Erreur initiale");
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      identifyMonitoringUser(user);
+      return;
+    }
+    clearMonitoringUser();
+  }, [user]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -121,6 +131,7 @@ export function App() {
       const details = await apiFetch(`/client/espace-client/client/${encodeURIComponent(login.user.clientCode)}`, { method: "GET" }, login.accessToken as string);
       setClientDetails(normalizeClientDetails(details));
     } catch (err) {
+      captureMonitoringError(err, "login");
       setError(err instanceof Error ? err.message : "Connexion impossible");
       void apiFetch("/client/espace-client/monitoring/error", {
         method: "POST",
@@ -139,6 +150,7 @@ export function App() {
 
   async function logout() {
     await apiFetch("/client/espace-client/auth/logout", { method: "POST" }).catch(() => undefined);
+    clearMonitoringUser();
     setAccessToken("");
     setUser(null);
     setClientDetails(null);
