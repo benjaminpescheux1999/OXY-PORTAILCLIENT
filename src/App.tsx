@@ -12,6 +12,7 @@ type ClientDetails = {
   clientId: string;
   prenom: string;
   nom: string;
+  email: string;
   telephoneDomicile: string;
   telephonePortable: string;
   telephoneTravail: string;
@@ -88,6 +89,7 @@ function normalizeClientDetails(payload: any): ClientDetails {
     clientId: String(raw.clientId ?? raw.CLIEN ?? ""),
     prenom: String(raw.prenom ?? raw.PRENO ?? ""),
     nom: String(raw.nom ?? raw.NOM ?? ""),
+    email: String(raw.email ?? raw.EMAIL ?? ""),
     telephoneDomicile: String(raw.telephoneDomicile ?? raw.TELDO ?? ""),
     telephonePortable: String(raw.telephonePortable ?? raw.TELPO ?? ""),
     telephoneTravail: String(raw.telephoneTravail ?? raw.TELTR ?? ""),
@@ -182,6 +184,7 @@ export function App() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [saveProfileLoading, setSaveProfileLoading] = useState(false);
   const [apiLoadingCount, setApiLoadingCount] = useState(0);
 
   const canLogin = useMemo(() => !!username.trim() && !!password.trim(), [username, password]);
@@ -302,6 +305,28 @@ export function App() {
     setFactureFilter("F");
   }
 
+  async function saveClientContact() {
+    if (!user || !accessToken || !clientDetails) return;
+    setSaveProfileLoading(true);
+    setError("");
+    try {
+      await callApi(`/client/espace-client/client/${encodeURIComponent(user.clientCode)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          email: clientDetails.email,
+          telephoneDomicile: clientDetails.telephoneDomicile,
+          telephonePortable: clientDetails.telephonePortable,
+          telephoneTravail: clientDetails.telephoneTravail
+        })
+      }, accessToken);
+      await loadMe(accessToken);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Echec de mise à jour du profil client");
+    } finally {
+      setSaveProfileLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (activeTab !== "factures" || !user || !accessToken) return;
     void loadFactures(accessToken, user.clientCode, factureFilter);
@@ -368,9 +393,40 @@ export function App() {
                   </div>
                   <div className="details-card">
                     <h4>Téléphones</h4>
+                    <label>
+                      Email
+                      <input
+                        value={clientDetails.email}
+                        onChange={(e) => setClientDetails((prev) => (prev ? { ...prev, email: e.target.value } : prev))}
+                      />
+                    </label>
+                    <label>
+                      Domicile
+                      <input
+                        value={clientDetails.telephoneDomicile}
+                        onChange={(e) => setClientDetails((prev) => (prev ? { ...prev, telephoneDomicile: e.target.value } : prev))}
+                      />
+                    </label>
+                    <label>
+                      Portable
+                      <input
+                        value={clientDetails.telephonePortable}
+                        onChange={(e) => setClientDetails((prev) => (prev ? { ...prev, telephonePortable: e.target.value } : prev))}
+                      />
+                    </label>
+                    <label>
+                      Travail
+                      <input
+                        value={clientDetails.telephoneTravail}
+                        onChange={(e) => setClientDetails((prev) => (prev ? { ...prev, telephoneTravail: e.target.value } : prev))}
+                      />
+                    </label>
                     <p><strong>Domicile:</strong> {clientDetails.telephoneDomicile || "-"}</p>
                     <p><strong>Portable:</strong> {clientDetails.telephonePortable || "-"}</p>
                     <p><strong>Travail:</strong> {clientDetails.telephoneTravail || "-"}</p>
+                    <button onClick={() => void saveClientContact()} disabled={saveProfileLoading}>
+                      {saveProfileLoading ? "Enregistrement..." : "Enregistrer"}
+                    </button>
                   </div>
                   <div className="details-card">
                     <h4>Adresse</h4>
