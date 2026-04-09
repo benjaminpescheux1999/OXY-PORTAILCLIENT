@@ -20,6 +20,7 @@ body {
   max-width: 900px;
   margin: 0 auto;
   padding: 24px;
+  position: relative;
 }
 
 header h1 {
@@ -161,4 +162,32 @@ pre {
   border-radius: 8px;
   padding: 8px;
   background: #f8fafc;
+}
+
+.api-loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 600;
+  z-index: 9999;
+}
+
+.api-loader-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

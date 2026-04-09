@@ -182,14 +182,25 @@ export function App() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [apiLoadingCount, setApiLoadingCount] = useState(0);
 
   const canLogin = useMemo(() => !!username.trim() && !!password.trim(), [username, password]);
+  const isApiLoading = apiLoadingCount > 0;
+
+  async function callApi(path: string, init?: RequestInit, token?: string) {
+    setApiLoadingCount((v) => v + 1);
+    try {
+      return await apiFetch(path, init, token);
+    } finally {
+      setApiLoadingCount((v) => Math.max(0, v - 1));
+    }
+  }
 
   async function loadMe(token: string) {
-    const me = await apiFetch("/client/espace-client/auth/me", { method: "GET" }, token);
+    const me = await callApi("/client/espace-client/auth/me", { method: "GET" }, token);
     const nextUser = me.user as User;
     setUser(nextUser);
-    const details = await apiFetch(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, token);
+    const details = await callApi(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, token);
     setClientDetails(normalizeClientDetails(details));
     await loadFactures(token, nextUser.clientCode, "F");
   }
@@ -197,7 +208,7 @@ export function App() {
   async function loadFactures(token: string, clientCode: string, type: FactureFilter) {
     setFacturesLoading(true);
     try {
-      const listPayload = await apiFetch(`/client/espace-client/client/${encodeURIComponent(clientCode)}/factures?type=${encodeURIComponent(type)}`, { method: "GET" }, token);
+      const listPayload = await callApi(`/client/espace-client/client/${encodeURIComponent(clientCode)}/factures?type=${encodeURIComponent(type)}`, { method: "GET" }, token);
       const items = normalizeFactures(listPayload);
       setFactures(items);
       if (items.length > 0) {
@@ -212,7 +223,7 @@ export function App() {
 
   async function selectFacture(token: string, factureId: string) {
     if (!factureId) return;
-    const facturePayload = await apiFetch(`/client/espace-client/facture/${encodeURIComponent(factureId)}`, { method: "GET" }, token);
+    const facturePayload = await callApi(`/client/espace-client/facture/${encodeURIComponent(factureId)}`, { method: "GET" }, token);
     setSelectedFacture(normalizeFactureDetail(facturePayload));
   }
 
@@ -223,7 +234,7 @@ export function App() {
         return;
       }
       try {
-        const refreshed = await apiFetch("/client/espace-client/auth/refresh", { method: "POST" });
+        const refreshed = await callApi("/client/espace-client/auth/refresh", { method: "POST" });
         const token = refreshed.accessToken as string;
         setAccessToken(token);
         await loadMe(token);
@@ -248,7 +259,7 @@ export function App() {
     setError("");
     setLoading(true);
     try {
-      const login = await apiFetch("/client/espace-client/auth/login", {
+      const login = await callApi("/client/espace-client/auth/login", {
         method: "POST",
         body: JSON.stringify({
           username: username.trim(),
@@ -258,13 +269,13 @@ export function App() {
       setAccessToken(login.accessToken as string);
       const nextUser = login.user as User;
       setUser(nextUser);
-      const details = await apiFetch(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, login.accessToken as string);
+      const details = await callApi(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, login.accessToken as string);
       setClientDetails(normalizeClientDetails(details));
       await loadFactures(login.accessToken as string, nextUser.clientCode, "F");
     } catch (err) {
       captureMonitoringError(err, "login");
       setError(err instanceof Error ? err.message : "Connexion impossible");
-      void apiFetch("/client/espace-client/monitoring/error", {
+      void callApi("/client/espace-client/monitoring/error", {
         method: "POST",
         body: JSON.stringify({
           level: "error",
@@ -280,7 +291,7 @@ export function App() {
   }
 
   async function logout() {
-    await apiFetch("/client/espace-client/auth/logout", { method: "POST" }).catch(() => undefined);
+    await callApi("/client/espace-client/auth/logout", { method: "POST" }).catch(() => undefined);
     clearMonitoringUser();
     setAccessToken("");
     setUser(null);
@@ -298,6 +309,12 @@ export function App() {
 
   return (
     <div className="app-shell">
+      {isApiLoading ? (
+        <div className="api-loader-overlay" role="status" aria-live="polite" aria-label="Chargement API">
+          <div className="api-loader-spinner" />
+          <span>Chargement...</span>
+        </div>
+      ) : null}
       <header>
         <h1>Espace Client OXYDRIVER</h1>
       </header>
