@@ -54,6 +54,31 @@ type FactureDetail = FactureSummary & {
   lignes: FactureLine[];
 };
 
+type AppareilSummary = {
+  clientId: string;
+  installation: string;
+  emplacement: string;
+  observation: string;
+  marque: string;
+  modele: string;
+  genre: string;
+  serie: string;
+  puissance: string;
+  energie: string;
+  dateDebutGarantie: string;
+  dateFinGarantie: string;
+  dureeGarantie: string;
+  sousContrat: string;
+  dateMiseEnService: string;
+  installateur: string;
+  dureeEntretien: string;
+  vendeur: string;
+  principal: string;
+  tarif: string;
+  prixContratHt: string;
+  parc: string;
+};
+
 type ActiveTab = "profile" | "factures";
 type FactureFilter = "F" | "D" | "I";
 
@@ -156,6 +181,39 @@ function normalizeFactureDetail(payload: any): FactureDetail {
   };
 }
 
+function normalizeAppareil(payload: any): AppareilSummary {
+  return {
+    clientId: pickString(payload, ["clientId", "APPAR"]),
+    installation: pickString(payload, ["installation", "INSTA"]),
+    emplacement: pickString(payload, ["emplacement", "EMPLA"]),
+    observation: pickString(payload, ["observation", "OBSER"]),
+    marque: pickString(payload, ["marque", "MARQU"]),
+    modele: pickString(payload, ["modele", "MODEL"]),
+    genre: pickString(payload, ["genre", "GENRE"]),
+    serie: pickString(payload, ["serie", "SERIE"]),
+    puissance: pickString(payload, ["puissance", "PUISS"]),
+    energie: pickString(payload, ["energie", "ENERG"]),
+    dateDebutGarantie: pickString(payload, ["dateDebutGarantie", "DEGAR"]),
+    dateFinGarantie: pickString(payload, ["dateFinGarantie", "FIGAR"]),
+    dureeGarantie: pickString(payload, ["dureeGarantie", "GARA"]),
+    sousContrat: pickString(payload, ["sousContrat", "CONTR"]),
+    dateMiseEnService: pickString(payload, ["dateMiseEnService", "DAMES"]),
+    installateur: pickString(payload, ["installateur", "INTAL"]),
+    dureeEntretien: pickString(payload, ["dureeEntretien", "DUREE"]),
+    vendeur: pickString(payload, ["vendeur", "VENDE"]),
+    principal: pickString(payload, ["principal", "PRINC"]),
+    tarif: pickString(payload, ["tarif", "TARIF"]),
+    prixContratHt: pickString(payload, ["prixContratHt", "PRICO"]),
+    parc: pickString(payload, ["parc", "PARCO"])
+  };
+}
+
+function normalizeAppareils(payload: any): AppareilSummary[] {
+  const raw = payload?.data?.data ?? payload?.data ?? payload ?? [];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => normalizeAppareil(item));
+}
+
 function formatEuro(value: string): string {
   const normalized = value.replace(",", ".").trim();
   const parsed = Number(normalized);
@@ -177,6 +235,8 @@ export function App() {
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>(null);
   const [factures, setFactures] = useState<FactureSummary[]>([]);
   const [selectedFacture, setSelectedFacture] = useState<FactureDetail | null>(null);
+  const [appareils, setAppareils] = useState<AppareilSummary[]>([]);
+  const [appareilsLoading, setAppareilsLoading] = useState(false);
   const [facturesLoading, setFacturesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("profile");
   const [factureFilter, setFactureFilter] = useState<FactureFilter>("F");
@@ -205,7 +265,18 @@ export function App() {
     setUser(nextUser);
     const details = await callApi(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, token);
     setClientDetails(normalizeClientDetails(details));
+    await loadAppareils(token, nextUser.clientCode);
     await loadFactures(token, nextUser.clientCode, "F");
+  }
+
+  async function loadAppareils(token: string, clientCode: string) {
+    setAppareilsLoading(true);
+    try {
+      const payload = await callApi(`/client/espace-client/client/${encodeURIComponent(clientCode)}/appareils`, { method: "GET" }, token);
+      setAppareils(normalizeAppareils(payload));
+    } finally {
+      setAppareilsLoading(false);
+    }
   }
 
   async function loadFactures(token: string, clientCode: string, type: FactureFilter) {
@@ -299,6 +370,7 @@ export function App() {
     setAccessToken("");
     setUser(null);
     setClientDetails(null);
+    setAppareils([]);
     setFactures([]);
     setSelectedFacture(null);
     setActiveTab("profile");
@@ -439,6 +511,36 @@ export function App() {
                   <div className="details-card">
                     <h4>Renouvellement</h4>
                     <p>{clientDetails.renouvellement || "-"}</p>
+                  </div>
+                  <div className="details-card appareils-card">
+                    <h4>Appareils</h4>
+                    {appareilsLoading ? <p>Chargement des appareils...</p> : null}
+                    {!appareilsLoading && appareils.length === 0 ? <p>Aucun appareil trouvé.</p> : null}
+                    <div className="appareil-list">
+                      {appareils.map((appareil, idx) => (
+                        <div key={`${appareil.clientId}-${appareil.serie}-${idx}`} className="appareil-item">
+                          <p><strong>Installation:</strong> {appareil.installation || "-"}</p>
+                          <p><strong>Emplacement:</strong> {appareil.emplacement || "-"}</p>
+                          <p><strong>Marque / Modèle:</strong> {[appareil.marque, appareil.modele].filter(Boolean).join(" / ") || "-"}</p>
+                          <p><strong>Type:</strong> {appareil.genre || "-"}</p>
+                          <p><strong>Série:</strong> {appareil.serie || "-"}</p>
+                          <p><strong>Énergie:</strong> {appareil.energie || "-"}</p>
+                          <p><strong>Puissance:</strong> {appareil.puissance || "-"}</p>
+                          <p><strong>Sous contrat:</strong> {appareil.sousContrat || "-"}</p>
+                          <p><strong>Principal:</strong> {appareil.principal || "-"}</p>
+                          <p><strong>Mise en service:</strong> {appareil.dateMiseEnService || "-"}</p>
+                          <p><strong>Garantie:</strong> {appareil.dateDebutGarantie || "-"} {"->"} {appareil.dateFinGarantie || "-"}</p>
+                          <p><strong>Durée garantie:</strong> {appareil.dureeGarantie || "-"}</p>
+                          <p><strong>Durée entretien:</strong> {appareil.dureeEntretien || "-"}</p>
+                          <p><strong>Installateur:</strong> {appareil.installateur || "-"}</p>
+                          <p><strong>Vendeur:</strong> {appareil.vendeur || "-"}</p>
+                          <p><strong>Tarif:</strong> {appareil.tarif || "-"}</p>
+                          <p><strong>Prix contrat HT:</strong> {appareil.prixContratHt || "-"}</p>
+                          <p><strong>Parc:</strong> {appareil.parc || "-"}</p>
+                          <p><strong>Observations:</strong> {appareil.observation || "-"}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (

@@ -109,6 +109,22 @@ pre {
   margin: 4px 0;
 }
 
+.appareils-card {
+  grid-column: 1 / -1;
+}
+
+.appareil-list {
+  display: grid;
+  gap: 10px;
+}
+
+.appareil-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
