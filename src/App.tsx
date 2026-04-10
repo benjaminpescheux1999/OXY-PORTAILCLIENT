@@ -80,6 +80,22 @@ type AppareilSummary = {
   parc: string;
 };
 
+type ReglementSummary = {
+  clientId: string;
+  dateReglement: string;
+  versement: string;
+  monnaie: string;
+  tauxTva: string;
+  banque: string;
+  cheque: string;
+  ville: string;
+  versementAutreMonnaie: string;
+  remise: string;
+  dateRemise: string;
+  incident: string;
+  dateIncident: string;
+};
+
 type ActiveTab = "profile" | "factures";
 type FactureFilter = "F" | "D" | "I";
 
@@ -216,6 +232,30 @@ function normalizeAppareils(payload: any): AppareilSummary[] {
   return raw.map((item) => normalizeAppareil(item));
 }
 
+function normalizeReglement(payload: any): ReglementSummary {
+  return {
+    clientId: pickString(payload, ["clientId", "PAYEU"]),
+    dateReglement: pickString(payload, ["dateReglement", "DATRE"]),
+    versement: pickString(payload, ["versement", "VERSE"]),
+    monnaie: pickString(payload, ["monnaie", "MONNA"]),
+    tauxTva: pickString(payload, ["tauxTva", "TATVA"]),
+    banque: pickString(payload, ["banque", "BANQUE"]),
+    cheque: pickString(payload, ["cheque", "CHEQUE"]),
+    ville: pickString(payload, ["ville", "VILLE"]),
+    versementAutreMonnaie: pickString(payload, ["versementAutreMonnaie", "VERSA"]),
+    remise: pickString(payload, ["remise", "REMISE"]),
+    dateRemise: pickString(payload, ["dateRemise", "DATEREMISE"]),
+    incident: pickString(payload, ["incident", "INCIDENT"]),
+    dateIncident: pickString(payload, ["dateIncident", "DATINCIDENT"])
+  };
+}
+
+function normalizeReglements(payload: any): ReglementSummary[] {
+  const raw = payload?.data?.data ?? payload?.data ?? payload ?? [];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => normalizeReglement(item));
+}
+
 function formatEuro(value: string): string {
   const normalized = value.replace(",", ".").trim();
   const parsed = Number(normalized);
@@ -231,6 +271,16 @@ function factureTypeLabel(type: string): string {
   return type || "-";
 }
 
+function formatMonnaie(value: string): string {
+  const upper = String(value || "").trim().toUpperCase();
+  if (upper === "EUR") return "€";
+  return upper || "-";
+}
+
+function incidentLabel(value: string): string {
+  return String(value || "").trim().toUpperCase() === "O" ? "Oui" : "Non";
+}
+
 export function App() {
   const [accessToken, setAccessToken] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
@@ -239,6 +289,8 @@ export function App() {
   const [selectedFacture, setSelectedFacture] = useState<FactureDetail | null>(null);
   const [appareils, setAppareils] = useState<AppareilSummary[]>([]);
   const [appareilsLoading, setAppareilsLoading] = useState(false);
+  const [reglements, setReglements] = useState<ReglementSummary[]>([]);
+  const [reglementsLoading, setReglementsLoading] = useState(false);
   const [facturesLoading, setFacturesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("profile");
   const [factureFilter, setFactureFilter] = useState<FactureFilter>("F");
@@ -268,6 +320,7 @@ export function App() {
     const details = await callApi(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, token);
     setClientDetails(normalizeClientDetails(details));
     await loadAppareils(token, nextUser.clientCode);
+    await loadReglements(token, nextUser.clientCode);
     await loadFactures(token, nextUser.clientCode, "F");
   }
 
@@ -278,6 +331,16 @@ export function App() {
       setAppareils(normalizeAppareils(payload));
     } finally {
       setAppareilsLoading(false);
+    }
+  }
+
+  async function loadReglements(token: string, clientCode: string) {
+    setReglementsLoading(true);
+    try {
+      const payload = await callApi(`/client/espace-client/client/${encodeURIComponent(clientCode)}/reglements`, { method: "GET" }, token);
+      setReglements(normalizeReglements(payload));
+    } finally {
+      setReglementsLoading(false);
     }
   }
 
@@ -347,6 +410,8 @@ export function App() {
       setUser(nextUser);
       const details = await callApi(`/client/espace-client/client/${encodeURIComponent(nextUser.clientCode)}`, { method: "GET" }, login.accessToken as string);
       setClientDetails(normalizeClientDetails(details));
+      await loadAppareils(login.accessToken as string, nextUser.clientCode);
+      await loadReglements(login.accessToken as string, nextUser.clientCode);
       await loadFactures(login.accessToken as string, nextUser.clientCode, "F");
     } catch (err) {
       captureMonitoringError(err, "login");
@@ -373,6 +438,7 @@ export function App() {
     setUser(null);
     setClientDetails(null);
     setAppareils([]);
+    setReglements([]);
     setFactures([]);
     setSelectedFacture(null);
     setActiveTab("profile");
@@ -541,6 +607,29 @@ export function App() {
                           <p><strong>Prix contrat HT:</strong> {appareil.prixContratHt || "-"}</p>
                           <p><strong>Parc:</strong> {appareil.parc || "-"}</p>
                           <p><strong>Observations:</strong> {appareil.observation || "-"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="details-card appareils-card">
+                    <h4>Règlements</h4>
+                    {reglementsLoading ? <p>Chargement des règlements...</p> : null}
+                    {!reglementsLoading && reglements.length === 0 ? <p>Aucun règlement trouvé.</p> : null}
+                    <div className="appareil-list">
+                      {reglements.map((reglement, idx) => (
+                        <div key={`${reglement.clientId}-${reglement.dateReglement}-${idx}`} className="appareil-item">
+                          <p><strong>Date règlement:</strong> {reglement.dateReglement || "-"}</p>
+                          <p><strong>Versement:</strong> {reglement.versement || "-"}</p>
+                          <p><strong>Monnaie:</strong> {formatMonnaie(reglement.monnaie)}</p>
+                          <p><strong>Taux TVA:</strong> {reglement.tauxTva || "-"}</p>
+                          <p><strong>Banque:</strong> {reglement.banque || "-"}</p>
+                          <p><strong>Chèque:</strong> {reglement.cheque || "-"}</p>
+                          <p><strong>Ville:</strong> {reglement.ville || "-"}</p>
+                          <p><strong>Versement autre monnaie:</strong> {reglement.versementAutreMonnaie || "-"}</p>
+                          <p><strong>Remise:</strong> {reglement.remise || "-"}</p>
+                          <p><strong>Date remise:</strong> {reglement.dateRemise || "-"}</p>
+                          <p><strong>Incident de règlement:</strong> {incidentLabel(reglement.incident)}</p>
+                          <p><strong>Date incident:</strong> {reglement.dateIncident || "-"}</p>
                         </div>
                       ))}
                     </div>
