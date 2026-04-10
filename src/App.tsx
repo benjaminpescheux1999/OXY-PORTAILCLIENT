@@ -94,6 +94,7 @@ type ReglementSummary = {
   dateRemise: string;
   incident: string;
   dateIncident: string;
+  operateur: string;
 };
 
 type ActiveTab = "profile" | "factures";
@@ -246,7 +247,8 @@ function normalizeReglement(payload: any): ReglementSummary {
     remise: pickString(payload, ["remise", "REMISE"]),
     dateRemise: pickString(payload, ["dateRemise", "DATEREMISE"]),
     incident: pickString(payload, ["incident", "INCIDENT"]),
-    dateIncident: pickString(payload, ["dateIncident", "DATINCIDENT"])
+    dateIncident: pickString(payload, ["dateIncident", "DATINCIDENT"]),
+    operateur: pickString(payload, ["operateur", "OPERA"])
   };
 }
 
@@ -630,6 +632,7 @@ export function App() {
                           <p><strong>Date remise:</strong> {reglement.dateRemise || "-"}</p>
                           <p><strong>Incident de règlement:</strong> {incidentLabel(reglement.incident)}</p>
                           <p><strong>Date incident:</strong> {reglement.dateIncident || "-"}</p>
+                          <p><strong>Opérateur:</strong> {reglement.operateur || "-"}</p>
                         </div>
                       ))}
                     </div>
