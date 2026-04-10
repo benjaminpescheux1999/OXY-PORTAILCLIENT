@@ -56,6 +56,7 @@ type FactureDetail = FactureSummary & {
 
 type AppareilSummary = {
   clientId: string;
+  ordreClassement: string;
   installation: string;
   emplacement: string;
   observation: string;
@@ -184,6 +185,7 @@ function normalizeFactureDetail(payload: any): FactureDetail {
 function normalizeAppareil(payload: any): AppareilSummary {
   return {
     clientId: pickString(payload, ["clientId", "APPAR"]),
+    ordreClassement: pickString(payload, ["ordreClassement", "ORDR"]),
     installation: pickString(payload, ["installation", "INSTA"]),
     emplacement: pickString(payload, ["emplacement", "EMPLA"]),
     observation: pickString(payload, ["observation", "OBSER"]),
@@ -195,7 +197,7 @@ function normalizeAppareil(payload: any): AppareilSummary {
     energie: pickString(payload, ["energie", "ENERG"]),
     dateDebutGarantie: pickString(payload, ["dateDebutGarantie", "DEGAR"]),
     dateFinGarantie: pickString(payload, ["dateFinGarantie", "FIGAR"]),
-    dureeGarantie: pickString(payload, ["dureeGarantie", "GARA"]),
+    dureeGarantie: pickString(payload, ["dureeGarantie", "GARAN"]),
     sousContrat: pickString(payload, ["sousContrat", "CONTR"]),
     dateMiseEnService: pickString(payload, ["dateMiseEnService", "DAMES"]),
     installateur: pickString(payload, ["installateur", "INTAL"]),
@@ -519,6 +521,7 @@ export function App() {
                     <div className="appareil-list">
                       {appareils.map((appareil, idx) => (
                         <div key={`${appareil.clientId}-${appareil.serie}-${idx}`} className="appareil-item">
+                          <p><strong>Ordre:</strong> {appareil.ordreClassement || "-"}</p>
                           <p><strong>Installation:</strong> {appareil.installation || "-"}</p>
                           <p><strong>Emplacement:</strong> {appareil.emplacement || "-"}</p>
                           <p><strong>Marque / Modèle:</strong> {[appareil.marque, appareil.modele].filter(Boolean).join(" / ") || "-"}</p>
